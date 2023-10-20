@@ -1,236 +1,220 @@
 #pragma once
 
-#include <cstddef>
-#include <iostream>
-#include <unordered_map>
 #include <string_view>
+#include <algorithm>
 #include <optional>
-#include <stdexcept>
-#include <stack>
+#include <vector>
+#include <array>
 
 
 namespace mpr
 {
-
-template <typename T>
-struct map_node
-{
-    std::optional<T> data;
-    std::unordered_map<char, map_node<T>> children;
-};
-
-template <typename T>
-class prefix_map_inserter
-{
-public:
-    prefix_map_inserter(map_node<T>& node)
-        : current(&node)
-    {}
-
-    void insert(const char c)
+    struct Node
     {
-        const auto& [ item, success ] = current->children.insert({ c, {} });
-        current = &item->second;
-    }
+        constexpr
+        Node() { std::ranges::fill(children, none); }
 
-    void set(T&& data)
-    {
-        current->data.emplace(std::forward<T>(data));
-    }
+        constexpr
+        void append(char symbol, size_t index)
+        { last = children[symbol] = index; }
 
-    void step(const char c)
+        constexpr
+        auto has_child() const -> bool
+        { return last != Node::none; }
+
+        constexpr
+        auto has_child(char symbol) const -> bool
+        { return children[symbol] != Node::none; }
+
+        constexpr
+        auto is_terminated() const -> bool
+        { return terminal; }
+
+        constexpr
+        auto get_child_id() const -> size_t
+        { return last; }
+
+        constexpr
+        auto get_child_id(char c) const -> size_t
+        { return children[c]; }
+
+        std::array<size_t, 256> children{};
+        size_t last = none;
+        bool terminal = false;
+
+        static constexpr size_t none = static_cast<size_t>(-1);
+    };
+
+    template <size_t Size>
+    class NodePool
     {
-        if (current->children.count(c) == 0)
+    public:
+        constexpr
+        NodePool(std::array<Node, Size> pool)
+            : pool(pool)
+        {}
+
+        constexpr
+        auto front() const -> const Node&
+        { return pool.front(); }
+
+        constexpr
+        auto operator[](size_t index) const -> const Node&
+        { return pool[index]; }
+
+    private:
+        std::array<Node, Size> pool;
+    };
+
+    template <size_t PoolSize>
+    class Trie
+    {
+    public:
+        constexpr
+        Trie(NodePool<PoolSize> pool)
+            : pool(pool)
+        {}
+
+        constexpr
+        void insert(std::string_view word)
         {
-            throw std::runtime_error("no such element");
-        }
-
-        current = &current->children.at(c);
-    }
-
-    void step()
-    {
-        if (current->children.size() != 1)
-        {
-            throw std::runtime_error("cannot descend, next item not present or ambiguous");
-        }
-
-        current = &current->children.begin()->second;
-    }
-
-    auto get_node() const -> map_node<T>&
-    {
-        return *current;
-    }
-
-    auto has_data() const -> bool
-    {
-        return current->data.has_value();
-    }
-
-    auto is_terminal() const -> bool
-    {
-        return current->children.size() == 0;
-    }
-
-    auto has_unique_child() const -> bool
-    {
-        return current->children.size() == 1;
-    }
-
-    auto is_unique_prefix() const -> bool
-    {
-        return has_unique_child() && !has_data();
-    }
-
-private:
-    map_node<T>* current = nullptr;
-};
-
-template <typename T>
-class prefix_map_iterator
-{
-public:
-    using iterator_category = std::forward_iterator_tag;
-    using value_type = T;
-    using difference_type = std::ptrdiff_t;
-    using pointer = T*;
-    using reference = T&;
-
-    prefix_map_iterator() = default;
-    prefix_map_iterator(map_node<value_type>& node)
-        : index(0)
-    {
-        stack.push(&node);
-        operator++();
-    }
-
-    reference operator*() const
-    {
-        return *current->data;
-    }
-
-    pointer operator->() const
-    {
-        return &operator*();
-    }
-
-    prefix_map_iterator& operator++()
-    {
-        if (index == -1)
-        {
-            throw std::runtime_error("incrementing past the end");
-        }
-
-        if (stack.empty())
-        {
-            index = -1;
-        }
-
-        // Just a regular DFS on tree-like structure but it breaks
-        // on first node containing data next call will catch up
-        // where the previous left off due to stack being a part
-        // of the iterator state
-        while (!stack.empty())
-        {
-            current = stack.top();
-            stack.pop();
-
-            for (auto& [key, val] : current->children)
+            if (contains_word(word))
             {
-                stack.push(&val);
-                ++index;
+                return;
             }
 
-            if (current->data)
+            for (auto node = pool.front(); const auto c : word)
             {
-                break;
+                auto next = node->get_child(c);
+                node = (next == nullptr)
+                    ? &node->append(c, pool.next())
+                    : next;
+            }
+
+            ++word_count;
+        }
+
+        constexpr
+        auto contains_word(std::string_view word) const -> bool
+        {
+            if (auto node = search(word))
+            {
+                return node->is_terminated();
+            }
+
+            return false;
+        }
+
+        constexpr
+        auto contains_prefix(std::string_view word) const -> bool
+        { return search(word).has_value(); }
+
+        constexpr
+        auto empty() const -> bool
+        { return pool.front().has_child(); }
+
+        constexpr
+        auto size() const -> size_t
+        { return word_count; }
+
+        constexpr auto begin() const { return; }
+        constexpr auto end() const { return; }
+        constexpr auto cbegin() const { return; }
+        constexpr auto cend() const { return; }
+
+    private:
+        constexpr
+        auto search(std::string_view word) const -> std::optional<const Node*>
+        {
+            auto* node = &pool.front(); 
+
+            for (const auto c : word)
+            {
+                if (!node->has_child(c))
+                {
+                    return std::nullopt;
+                }
+
+                node = &pool[node->get_child_id(c)];
+            }
+
+            return node;
+        }
+
+
+        NodePool<PoolSize> pool;
+        size_t word_count = 0;
+    };
+
+    namespace detail
+    {
+        constexpr
+        void pool_insert(std::vector<Node>& pool, std::string_view word)
+        {
+            auto* current = &pool.front();
+
+            for (auto i = 0ul; const auto c : word)
+            {
+                if (current->has_child(c))
+                {
+                    current = &pool[current->get_child_id(c)];
+                    continue;
+                }
+
+                current->append(c, ++i);
+                pool.emplace_back();
+                current = &pool[i];
             }
         }
 
-        return *this;
-    }
-
-    prefix_map_iterator operator++(int)
-    {
-        auto temp = *this;
-        operator++();
-        return temp;
-    }
-
-    bool operator==(const prefix_map_iterator& other) const
-    {
-        return index == other.index;
-    }
-
-    bool operator!=(const prefix_map_iterator& other) const
-    {
-        return !operator==(other);
-    }
-
-private:
-    size_t index = -1;
-    map_node<value_type>* current;
-    std::stack<map_node<value_type>*> stack;
-};
-
-template <typename T>
-class prefix_map
-{
-public:
-    using iterator = prefix_map_iterator<T>;
-    using const_iterator = prefix_map_iterator<const T>;
-
-    void insert(const std::string_view word, T&& data)
-    {
-        auto inserter = prefix_map_inserter<T>(root);
-
-        for (const auto c : word)
+        template <typename ...Ts>
+        requires (std::convertible_to<Ts, std::string_view> && ...)
+        constexpr
+        auto make_pool(Ts ...words) -> std::vector<Node>
         {
-            inserter.insert(c);
+            auto nodes = std::vector<Node>(1);
+
+            (pool_insert(nodes, words), ...);
+
+            return nodes;
         }
 
-        inserter.set(std::forward<T>(data));
+        template <size_t N>
+        struct string_literal
+        {
+            constexpr
+            string_literal(const char (&str)[N])
+                : str(std::to_array(str))
+            {}
+
+            constexpr
+            operator std::string_view() const
+            { return { str.data(), N - 1 }; }
+
+            std::array<char, N> str;
+        };
+
+        template <size_t N, std::ranges::input_range R>
+        constexpr
+        auto to_array(R&& range)
+        {
+            using value_type = std::ranges::range_value_t<decltype(range)>;
+
+            auto result = std::array<value_type, N>{};
+            std::ranges::copy(range, result.begin());
+
+            return result;
+        }
     }
 
-    void remove(const std::string_view word)
+    template <detail::string_literal ...Words>
+    consteval
+    auto make_trie()
     {
-        throw std::runtime_error("not implemented");
+        constexpr auto size = detail::make_pool(Words...).size();
+        const     auto pool = detail::make_pool(Words...);
+
+        return Trie(NodePool(detail::to_array<size>(pool)));
     }
-
-    auto at(const std::string_view word) -> T&
-    {
-        auto inserter = prefix_map_inserter<T>(root);
-
-        // iterate word
-        for (const auto c : word)
-        {
-            inserter.step(c);
-        }
-
-        // while the word isn't terminated, try to complete it
-        while (inserter.is_unique_prefix())
-        {
-            inserter.step();
-        }
-
-        // in case we didn't find a complete word throw
-        if (!inserter.has_data())
-        {
-            throw std::runtime_error("there is no data asociated");
-        }
-
-        return inserter.get_node().data.value();
-    }
-
-    // Iterator interface
-    auto begin() -> iterator { return iterator(root); }
-    auto end() -> iterator { return {}; }
-    auto cbegin() const -> const_iterator { return iterator(root); }
-    auto cend() const -> const_iterator { return {}; }
-
-private:
-    map_node<T> root{};
-};
 
 }
