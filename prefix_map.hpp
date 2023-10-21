@@ -9,8 +9,9 @@
 
 namespace mpr
 {
-    struct Node
+    class Node
     {
+    public:
         constexpr
         Node() { std::ranges::fill(children, none); }
 
@@ -38,11 +39,12 @@ namespace mpr
         auto get_child_id(char c) const -> size_t
         { return children[c]; }
 
+        static constexpr size_t none = static_cast<size_t>(-1);
+
+    private:
         std::array<size_t, 256> children{};
         size_t last = none;
         bool terminal = false;
-
-        static constexpr size_t none = static_cast<size_t>(-1);
     };
 
     template <size_t Size>
