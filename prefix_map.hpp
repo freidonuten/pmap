@@ -78,25 +78,6 @@ namespace mpr
         {}
 
         constexpr
-        void insert(std::string_view word)
-        {
-            if (contains_word(word))
-            {
-                return;
-            }
-
-            for (auto node = pool.front(); const auto c : word)
-            {
-                auto next = node->get_child(c);
-                node = (next == nullptr)
-                    ? &node->append(c, pool.next())
-                    : next;
-            }
-
-            ++word_count;
-        }
-
-        constexpr
         auto contains_word(std::string_view word) const -> bool
         {
             if (auto node = search(word))
