@@ -3,6 +3,7 @@
 #include <string_view>
 #include <algorithm>
 #include <optional>
+#include <cstdint>
 #include <vector>
 #include <array>
 
@@ -17,7 +18,10 @@ namespace mpr
 
         constexpr
         void append(char symbol, size_t index)
-        { last = children[symbol] = index; }
+        {
+            last = children[symbol] = index;
+            child_count++;
+        }
 
         constexpr
         void terminate()
@@ -43,10 +47,15 @@ namespace mpr
         auto get_child_id(char c) const -> size_t
         { return children[c]; }
 
+        constexpr
+        auto get_child_count() const -> size_t
+        { return child_count; }
+
         static constexpr size_t none = 0;
 
     private:
         std::array<size_t, 256> children{};
+        uint8_t child_count = 0;
         size_t last = none;
         bool terminal = false;
     };
