@@ -20,6 +20,10 @@ namespace mpr
         { last = children[symbol] = index; }
 
         constexpr
+        void terminate()
+        { terminal = true; }
+
+        constexpr
         auto has_child() const -> bool
         { return last != Node::none; }
 
@@ -82,7 +86,7 @@ namespace mpr
         {
             if (auto node = search(word))
             {
-                return node->is_terminated();
+                return node.value()->is_terminated();
             }
 
             return false;
@@ -148,6 +152,8 @@ namespace mpr
                 pool.emplace_back();
                 current = &pool[i++];
             }
+
+            current->terminate();
         }
 
         template <typename ...Ts>
