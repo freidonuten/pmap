@@ -136,7 +136,7 @@ namespace mpr
         {
             auto* current = &pool.front();
 
-            for (auto i = 0ul; const auto c : word)
+            for (auto i = pool.size(); const auto c : word)
             {
                 if (current->has_child(c))
                 {
@@ -144,9 +144,9 @@ namespace mpr
                     continue;
                 }
 
-                current->append(c, ++i);
+                current->append(c, i);
                 pool.emplace_back();
-                current = &pool[i];
+                current = &pool[i++];
             }
         }
 
