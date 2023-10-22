@@ -39,7 +39,7 @@ namespace mpr
         auto get_child_id(char c) const -> size_t
         { return children[c]; }
 
-        static constexpr size_t none = static_cast<size_t>(-1);
+        static constexpr size_t none = 0;
 
     private:
         std::array<size_t, 256> children{};
