@@ -81,12 +81,12 @@ namespace mpr
         std::array<Node, Size> pool;
     };
 
-    template <size_t PoolSize>
+    template <size_t WordCount, size_t NodeCount>
     class Trie
     {
     public:
         constexpr
-        Trie(NodePool<PoolSize> pool)
+        Trie(NodePool<NodeCount> pool)
             : pool(pool)
         {}
 
@@ -111,7 +111,7 @@ namespace mpr
 
         constexpr
         auto size() const -> size_t
-        { return word_count; }
+        { return WordCount; }
 
         constexpr auto begin() const { return; }
         constexpr auto end() const { return; }
@@ -137,9 +137,7 @@ namespace mpr
             return node;
         }
 
-
-        NodePool<PoolSize> pool;
-        size_t word_count = 0;
+        NodePool<NodeCount> pool;
     };
 
     namespace detail
@@ -209,10 +207,12 @@ namespace mpr
     consteval
     auto make_trie()
     {
-        constexpr auto size = detail::make_pool(Words...).size();
-        const     auto pool = detail::make_pool(Words...);
+        using namespace detail;
 
-        return Trie(NodePool(detail::to_array<size>(pool)));
+        constexpr auto nodeCount = make_pool(Words...).size();
+        const     auto nodeArray = to_array<nodeCount>(make_pool(Words...));
+
+        return Trie<sizeof...(Words), nodeCount>(NodePool(nodeArray));
     }
 
 }
