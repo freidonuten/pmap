@@ -106,6 +106,25 @@ namespace mpr
         { return search(word).has_value(); }
 
         constexpr
+        auto has_unique_suffix(std::string_view prefix) const -> bool
+        {
+            auto* node = search(prefix);
+
+            if (!node)
+            {
+                return false;
+            }
+
+            while (node->get_child_count() == 1)
+            {
+                node = &node->get_child();
+            }
+
+            return node->get_child_count == 0
+                && node->is_terminated;
+        }
+
+        constexpr
         auto empty() const -> bool
         { return pool.front().has_child(); }
 
