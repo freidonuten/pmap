@@ -21,7 +21,7 @@ namespace mpr
         constexpr
         void append(char symbol, size_t index)
         {
-            last = children[symbol] = index;
+            last = children.at(symbol) = index;
             child_count++;
         }
 
@@ -35,7 +35,7 @@ namespace mpr
 
         [[nodiscard]] constexpr
         auto has_child(char symbol) const -> bool
-        { return children[symbol] != Node::none; }
+        { return children.at(symbol) != Node::none; }
 
         [[nodiscard]] constexpr
         auto is_terminated() const -> bool
@@ -46,8 +46,8 @@ namespace mpr
         { return last; }
 
         [[nodiscard]] constexpr
-        auto get_child_id(char c) const -> size_t
-        { return children[c]; }
+        auto get_child_id(char symbol) const -> size_t
+        { return children.at(symbol); }
 
         [[nodiscard]] constexpr
         auto get_child_count() const -> size_t
