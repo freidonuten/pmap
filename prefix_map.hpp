@@ -29,27 +29,27 @@ namespace mpr
         void terminate()
         { terminal = true; }
 
-        constexpr
+        [[nodiscard]] constexpr
         auto has_child() const -> bool
         { return last != Node::none; }
 
-        constexpr
+        [[nodiscard]] constexpr
         auto has_child(char symbol) const -> bool
         { return children[symbol] != Node::none; }
 
-        constexpr
+        [[nodiscard]] constexpr
         auto is_terminated() const -> bool
         { return terminal; }
 
-        constexpr
+        [[nodiscard]] constexpr
         auto get_child_id() const -> size_t
         { return last; }
 
-        constexpr
+        [[nodiscard]] constexpr
         auto get_child_id(char c) const -> size_t
         { return children[c]; }
 
-        constexpr
+        [[nodiscard]] constexpr
         auto get_child_count() const -> size_t
         { return child_count; }
 
