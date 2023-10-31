@@ -13,6 +13,8 @@ namespace mpr
     class Node
     {
     public:
+        static constexpr size_t none = 0;
+        static constexpr size_t child_limit = 256; // all possible bytes
         constexpr
         Node() { std::ranges::fill(children, none); }
 
@@ -51,10 +53,109 @@ namespace mpr
         auto get_child_count() const -> size_t
         { return child_count; }
 
-        static constexpr size_t none = 0;
+        class Iterator
+        {
+            using wrapee_t = std::array<size_t, child_limit>::iterator;
+
+        public:
+            using iterator_category = std::input_iterator_tag;
+            using value_type = size_t;
+            using difference_type = ptrdiff_t;
+            using pointer = size_t*;
+            using reference = size_t&;
+
+            constexpr Iterator() = delete;
+            constexpr Iterator(wrapee_t begin, wrapee_t end)
+                : begin(begin)
+                , current(begin)
+                , end(end)
+            {
+                if (is_incrementable())
+                {
+                    operator++();
+                }
+            }
+
+            constexpr
+            auto operator==(const Iterator& other) const -> bool
+            { return current == other.current; }
+
+            constexpr
+            auto operator!=(const Iterator& other) const -> bool
+            { return !(*this == other); }
+
+            constexpr
+            auto operator*() const -> reference
+            { return *current; }
+
+            constexpr
+            auto operator->() const -> pointer
+            { return &*current; }
+
+            constexpr
+            auto operator++() -> Iterator
+            {
+                ++current;
+
+                while (is_incrementable())
+                {
+                    ++current;
+                }
+
+                return *this;
+            }
+
+            constexpr
+            auto operator++(int) -> Iterator
+            {
+                auto tmp = *this;
+                operator++();
+                return tmp;
+            }
+
+            constexpr
+            auto operator--() -> Iterator
+            {
+                --current;
+
+                while (is_decrementable())
+                {
+                    --current;
+                }
+
+                return *this;
+            }
+
+            constexpr
+            auto operator--(int) -> Iterator
+            {
+                auto tmp = *this;
+                operator--();
+                return tmp;
+            }
+
+        private:
+            constexpr
+            auto is_incrementable() -> bool
+            { return *current == 0 && current != end; }
+
+            constexpr
+            auto is_decrementable() -> bool
+            { return *current == 0 && current != begin; }
+
+            wrapee_t begin;
+            wrapee_t current;
+            wrapee_t end;
+        };
+
+        [[nodiscard]] constexpr auto begin() noexcept -> Node::Iterator
+        { return { children.begin(), children.end() }; }
+
+        [[nodiscard]] constexpr auto end() noexcept -> Node::Iterator
+        { return { children.end(), children.end() }; }
 
     private:
-        std::array<size_t, 256> children{};
+        std::array<size_t, child_limit> children{};
         uint8_t child_count = 0;
         size_t last = none;
         bool terminal = false;
