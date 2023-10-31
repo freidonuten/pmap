@@ -137,11 +137,11 @@ namespace mpr
         private:
             constexpr
             auto is_incrementable() -> bool
-            { return *current == 0 && current != end; }
+            { return *current == none && current != end; }
 
             constexpr
             auto is_decrementable() -> bool
-            { return *current == 0 && current != begin; }
+            { return *current == none && current != begin; }
 
             wrapee_t begin;
             wrapee_t current;
