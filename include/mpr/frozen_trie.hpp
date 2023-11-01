@@ -6,6 +6,8 @@
 #include <cstdint>
 #include <vector>
 #include <array>
+#include <stack>
+#include <string>
 
 
 namespace mpr
@@ -15,8 +17,9 @@ namespace mpr
     public:
         static constexpr size_t none = 0;
         static constexpr size_t child_limit = 256; // all possible bytes
+
         constexpr
-        Node() { std::ranges::fill(children, none); }
+        Node() noexcept { std::ranges::fill(children, none); }
 
         constexpr
         void append(char symbol, size_t index)
@@ -227,16 +230,43 @@ namespace mpr
 
         constexpr
         auto empty() const -> bool
-        { return pool.front().has_child(); }
+        { return size() == 0; }
 
         constexpr
         auto size() const -> size_t
         { return WordCount; }
 
-        constexpr auto begin() const { return; }
-        constexpr auto end() const { return; }
-        constexpr auto cbegin() const { return; }
-        constexpr auto cend() const { return; }
+        [[nodiscard]] constexpr auto cbegin() const noexcept { return; }
+        [[nodiscard]] constexpr auto cend() const noexcept { return; }
+
+        class Iterator
+        {
+        public:
+            using value_type = std::string;
+            using pointer = const std::string*;
+            using reference = const std::string&;
+            using iterator_category = std::forward_iterator_tag;
+
+            Iterator() = default;
+            Iterator(Node& root) { stack.push(&root); }
+
+            auto operator*() const -> reference { return word; }
+            auto operator->() const -> pointer { return &word; }
+
+        private:
+            void next()
+            {
+                if (stack.empty())
+                {
+                    return;
+                }
+
+                const auto top = stack.top();
+            }
+
+            std::string word = "";
+            std::stack<Node*> stack;
+        };
 
     private:
         constexpr
