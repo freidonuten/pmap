@@ -16,7 +16,7 @@ jobs:
       run: mkdir -p ${{github.workspace}}/build
       
     - name: Install Dependencies
-      run: sudo apt-get update && sudo apt-get install -y cmake g++ make
+      run: sudo apt-get update && sudo apt-get install -y cmake g++-13 make
     
     - name: Configure CMake
       working-directory: ${{github.workspace}}/build
